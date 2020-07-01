@@ -29,12 +29,14 @@ from Recorder import Recorder
  
 def main():
     vehicle_list = []
-    actor_list = []
+    camera_list = []
     fps = 30
     resolution = (1280,720)
-    number_of_vehicles = 100
-    number_of_cameras = 1
+    number_of_vehicles = 10
+    number_of_cameras = 2
+    recording_duration = 15
     synchronous_mode = True
+    parallel_recording = True
     
     print('\n|---------- Config ----------|')
     print('| FPS ................... %d |' % fps)
@@ -42,6 +44,8 @@ def main():
     print('| Synchronous Mode .... %r |' % synchronous_mode)
     print('| Vehicle Count ......... %d |' % number_of_vehicles)
     print('| Camera Count ........... %d |' % number_of_cameras)
+    print('| Parallel Recording .. %r |' % parallel_recording)
+    print('| Recording Duration .... %d |' % recording_duration)
     print('|----------------------------|\n')
     
     
@@ -105,29 +109,44 @@ def main():
         print('INFO: Done.')
         
         #----------- Recording -----------#
-
-        cam1 = Recorder(world, 'cam1', blueprint_library, fps, resolution)
-        actor_list.append(cam1)
         
-        cam2 = Recorder(world, 'cam2', blueprint_library, fps, resolution)
-        actor_list.append(cam2)
-        
-        target_vehicle = random.choice(vehicle_list)
-        cam1.attach(target_vehicle)
-        
-        target_vehicle = random.choice(vehicle_list)
-        cam2.attach(target_vehicle)
-
-        while ticks <= 500:
-            world.tick()
-            ticks += 1
-            time.sleep(1/fps)
+        for cam in range(number_of_cameras):
+            camera_name = 'cam' + str(cam)
+            camera = Recorder(world, camera_name, blueprint_library, fps, resolution)
+            camera_list.append(camera)
             
-        cam1.stop() 
-        cam2.stop() 
-        ticks = 0
-        
-        while(cam1.is_recording() or cam2.is_recording() ):
+        if parallel_recording:
+            for camera in camera_list:
+                target_vehicle = random.choice(vehicle_list)
+                camera.attach(target_vehicle)
+                
+            while ticks <= recording_duration * fps:
+                world.tick()
+                ticks += 1
+                time.sleep(1/fps)
+            
+            ticks = 0
+                
+            for camera in camera_list:
+                camera.stop()
+                
+        # Sequential Recording        
+        else:
+            for camera in camera_list:
+                target_vehicle = random.choice(vehicle_list)
+                camera.attach(target_vehicle)
+                
+                while ticks <= recording_duration * fps:
+                    world.tick()
+                    ticks += 1
+                    time.sleep(1/fps)
+                    
+                ticks = 0
+                
+                camera.stop()
+
+        # Wait for rendering to finish
+        while( any( [camera.is_recording() for camera in camera_list] ) ):
             world.tick()
             time.sleep(1/fps)
             
@@ -135,12 +154,11 @@ def main():
         
 
     finally:
-
-        print('INFO: Destroying actors..')
-        #cam1.destroy()
-        client.apply_batch([carla.command.DestroyActor(x) for x in vehicle_list])
+        print('INFO: Starting synchronous mode..')
         settings.synchronous_mode = False # Disables synchronous mode
         world.apply_settings(settings)
+        print('INFO: Destroying actors..')
+        client.apply_batch([carla.command.DestroyActor(x) for x in vehicle_list])
         print('INFO: Done.')
 
 
