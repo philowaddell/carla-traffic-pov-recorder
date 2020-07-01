@@ -60,13 +60,10 @@ def main():
         # Retrive filtered blueprint library
         blueprint_library = world.get_blueprint_library()
         vehicle_blueprints = [x for x in blueprint_library.filter('Vehicle') if int(x.get_attribute('number_of_wheels')) == 4]
-        
-        # Setting up Traffic Manager
-        traffic_manager = client.get_trafficmanager(8000)
 
-        # Set random spawn point
-        #transform = random.choice(world.get_map().get_spawn_points())
+        #----------- Spawning Vehicles -----------#
         
+        # Randomise spawn points
         spawn_points = world.get_map().get_spawn_points()
         random.shuffle(spawn_points)
         
@@ -85,42 +82,65 @@ def main():
             blueprint.set_attribute('role_name', 'autopilot')
             
             vehicle = world.spawn_actor(blueprint, transform)
-            vehicle.set_autopilot(True, traffic_manager.get_port())
+            #vehicle.set_autopilot(True, traffic_manager.get_port())
             vehicle_list.append(vehicle)
            
         print('INFO: Spawned %d vehicles' % number_of_vehicles)
-
-
-        cam1 = Recorder(world, 'cam1', blueprint_library, fps, resolution)
-        actor_list.append(cam1)
         
-        cam2 = Recorder(world, 'cam2', blueprint_library, fps, resolution)
-        actor_list.append(cam2)
+        #----------- End -----------#
         
-        target_vehicle = random.choice(vehicle_list)
-        cam1.attach(target_vehicle)
-        
-        target_vehicle = random.choice(vehicle_list)
-        cam2.attach(target_vehicle)
-
-        while ticks <= 500:
+        while ticks <= 100:
             world.tick()
             ticks += 1
             time.sleep(1/fps)
-            
-        cam1.stop() 
-        cam2.stop() 
-        ticks = 0
         
-        while(cam1.is_recording() or cam2.is_recording() ):
+        # Setting up Traffic Manager
+        print('Starting tm')
+        traffic_manager = client.get_trafficmanager()
+        tm_port = traffic_manager.get_port()
+        
+        for v in vehicle_list:
+            v.set_autopilot(True,tm_port)
+            
+        while True:
             world.tick()
             time.sleep(1/fps)
+            
+            
+        #----------- Recording -----------#
+
+        # cam1 = Recorder(world, 'cam1', blueprint_library, fps, resolution)
+        # actor_list.append(cam1)
+        
+        # cam2 = Recorder(world, 'cam2', blueprint_library, fps, resolution)
+        # actor_list.append(cam2)
+        
+        # target_vehicle = random.choice(vehicle_list)
+        # cam1.attach(target_vehicle)
+        
+        # target_vehicle = random.choice(vehicle_list)
+        # cam2.attach(target_vehicle)
+
+        # while ticks <= 500:
+            # world.tick()
+            # ticks += 1
+            # time.sleep(1/fps)
+            
+        # cam1.stop() 
+        # cam2.stop() 
+        # ticks = 0
+        
+        # while(cam1.is_recording() or cam2.is_recording() ):
+            # world.tick()
+            # time.sleep(1/fps)
+            
+        #----------- End -----------#
         
 
     finally:
 
         print('INFO: Destroying actors..')
-        cam1.destroy()
+        #cam1.destroy()
         client.apply_batch([carla.command.DestroyActor(x) for x in vehicle_list])
         settings.synchronous_mode = False # Disables synchronous mode
         world.apply_settings(settings)
