@@ -32,7 +32,7 @@ def main():
     actor_list = []
     fps = 30
     resolution = (1280,720)
-    number_of_vehicles = 10
+    number_of_vehicles = 100
     number_of_cameras = 1
     synchronous_mode = True
     
@@ -53,7 +53,7 @@ def main():
 
         world = client.get_world()
         settings = world.get_settings()
-        settings.synchronous_mode = synchronous_mode # Enables synchronous mode
+        #settings.synchronous_mode = synchronous_mode # Enables synchronous mode
         settings.fixed_delta_seconds = 1/fps
         world.apply_settings(settings)
 
@@ -87,52 +87,49 @@ def main():
            
         print('INFO: Spawned %d vehicles' % number_of_vehicles)
         
-        #----------- End -----------#
+        #----------- Setting up Traffic Manager -----------#
         
-        while ticks <= 100:
-            world.tick()
-            ticks += 1
-            time.sleep(1/fps)
-        
-        # Setting up Traffic Manager
-        print('Starting tm')
+        # Setting up traffic manager
+        print('INFO: Starting traffic manager..')
         traffic_manager = client.get_trafficmanager()
         tm_port = traffic_manager.get_port()
         
         for v in vehicle_list:
-            v.set_autopilot(True,tm_port)
-            
-        while True:
-            world.tick()
-            time.sleep(1/fps)
-            
-            
+            v.set_autopilot(True, tm_port)
+        print('INFO: Done.')
+        
+        # Swapping to asynchronous server
+        print('INFO: Starting asynchronous mode..')
+        settings.synchronous_mode = synchronous_mode # Enables synchronous mode
+        world.apply_settings(settings)
+        print('INFO: Done.')
+        
         #----------- Recording -----------#
 
-        # cam1 = Recorder(world, 'cam1', blueprint_library, fps, resolution)
-        # actor_list.append(cam1)
+        cam1 = Recorder(world, 'cam1', blueprint_library, fps, resolution)
+        actor_list.append(cam1)
         
-        # cam2 = Recorder(world, 'cam2', blueprint_library, fps, resolution)
-        # actor_list.append(cam2)
+        cam2 = Recorder(world, 'cam2', blueprint_library, fps, resolution)
+        actor_list.append(cam2)
         
-        # target_vehicle = random.choice(vehicle_list)
-        # cam1.attach(target_vehicle)
+        target_vehicle = random.choice(vehicle_list)
+        cam1.attach(target_vehicle)
         
-        # target_vehicle = random.choice(vehicle_list)
-        # cam2.attach(target_vehicle)
+        target_vehicle = random.choice(vehicle_list)
+        cam2.attach(target_vehicle)
 
-        # while ticks <= 500:
-            # world.tick()
-            # ticks += 1
-            # time.sleep(1/fps)
+        while ticks <= 500:
+            world.tick()
+            ticks += 1
+            time.sleep(1/fps)
             
-        # cam1.stop() 
-        # cam2.stop() 
-        # ticks = 0
+        cam1.stop() 
+        cam2.stop() 
+        ticks = 0
         
-        # while(cam1.is_recording() or cam2.is_recording() ):
-            # world.tick()
-            # time.sleep(1/fps)
+        while(cam1.is_recording() or cam2.is_recording() ):
+            world.tick()
+            time.sleep(1/fps)
             
         #----------- End -----------#
         
