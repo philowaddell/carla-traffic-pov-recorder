@@ -5,7 +5,7 @@ import os
 import sys
 
 try:
-    sys.path.append(glob.glob('../../carla/dist/carla-*%d.%d-%s.egg' % (
+    sys.path.append(glob.glob('../Carla_0.9.9_Compiled/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
         sys.version_info.minor,
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
@@ -24,7 +24,7 @@ import threading
 import numpy as np
 import cv2
 from PIL import Image 
-from Recorder_v2 import Recorder
+from Recorder import Recorder
 
  
 def main():
@@ -103,7 +103,7 @@ def main():
         target_vehicle = random.choice(vehicle_list)
         cam2.attach(target_vehicle)
 
-        while ticks < 500:
+        while ticks <= 500:
             world.tick()
             ticks += 1
             time.sleep(1/fps)
