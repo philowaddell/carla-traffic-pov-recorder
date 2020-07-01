@@ -42,7 +42,7 @@ class Recorder(object):
        print('INFO: %s started recording..' % self.cam_id)
        # Positioning camera on bonnet (TODO: Make car specific)
        transform = carla.Transform(carla.Location(x=0.5, z=1.3)) 
-       self.camera = self.world.spawn_actor(self.bp, transform, attach_to=vehicle)
+       self.camera = self.world.spawn_actor(self.bp, transform, attach_to=vehicle, attachment_type=carla.AttachmentType.Rigid)
        self.camera.listen(lambda carla_image: self.add(carla_image))    # Called every tick
     
     # Set resolution

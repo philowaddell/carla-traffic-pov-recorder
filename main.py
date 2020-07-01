@@ -32,7 +32,7 @@ def main():
     camera_list = []
     fps = 30
     resolution = (1280,720)
-    number_of_vehicles = 10
+    number_of_vehicles = 50
     number_of_cameras = 2
     recording_duration = 15
     synchronous_mode = True
@@ -123,7 +123,7 @@ def main():
             while ticks <= recording_duration * fps:
                 world.tick()
                 ticks += 1
-                time.sleep(1/fps)
+                #time.sleep(1/fps)
             
             ticks = 0
                 
@@ -139,7 +139,7 @@ def main():
                 while ticks <= recording_duration * fps:
                     world.tick()
                     ticks += 1
-                    time.sleep(1/fps)
+                    #time.sleep(1/fps)
                     
                 ticks = 0
                 
