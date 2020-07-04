@@ -28,11 +28,12 @@ from Recorder import Recorder
 
  
 def main():
-    vehicle_list = []
+    mdl_vehicle_list = []
+    bad_vehicle_list = []
     camera_list = []
     fps = 30
     resolution = (1280,720)
-    number_of_vehicles = 50
+    number_of_vehicles = 10
     number_of_cameras = 2
     recording_duration = 15
     synchronous_mode = True
@@ -54,10 +55,10 @@ def main():
         # Create simulation and get world
         client = carla.Client('localhost', 2000, worker_threads=0)
         client.set_timeout(10.0)
-
+        
         world = client.get_world()
         settings = world.get_settings()
-        #settings.synchronous_mode = synchronous_mode # Enables synchronous mode
+        settings.synchronous_mode = True # Enables synchronous mode
         settings.fixed_delta_seconds = 1/fps
         world.apply_settings(settings)
 
@@ -79,19 +80,25 @@ def main():
                 
             #bp = random.choice(vehicle_blueprints)
             blueprint = blueprint_library.find('vehicle.audi.tt')
-            
-            if blueprint.has_attribute('color'):
-                color = random.choice(blueprint.get_attribute('color').recommended_values)
-                blueprint.set_attribute('color', color)
             blueprint.set_attribute('role_name', 'autopilot')
             
-            vehicle = world.spawn_actor(blueprint, transform)
-            #vehicle.set_autopilot(True, traffic_manager.get_port())
-            vehicle_list.append(vehicle)
+            if blueprint.has_attribute('color'):
+                if n % 2 == 0:
+                    red = '255,0,0'
+                    blueprint.set_attribute('color', red)
+                    vehicle = world.spawn_actor(blueprint, transform)
+                    bad_vehicle_list.append(vehicle)
+                else:
+                    blue = '0,255,0'
+                    blueprint.set_attribute('color', blue)
+                    vehicle = world.spawn_actor(blueprint, transform)
+                    mdl_vehicle_list.append(vehicle)
            
         print('INFO: Spawned %d vehicles' % number_of_vehicles)
         
         #----------- Setting up Traffic Manager -----------#
+        
+        vehicle_list = mdl_vehicle_list + bad_vehicle_list
         
         # Setting up traffic manager
         print('INFO: Starting traffic manager..')
@@ -102,6 +109,15 @@ def main():
             v.set_autopilot(True, tm_port)
         print('INFO: Done.')
         
+        for v in bad_vehicle_list:
+           # 0 = 100%, 100 = 0%, -100=200%?
+           traffic_manager.vehicle_percentage_speed_difference(v, 15 - np.random.randint(0,15))
+           #traffic_manager.set_percentage_keep_right_rule(v, 0)
+           
+        for v in mdl_vehicle_list:
+            traffic_manager.vehicle_percentage_speed_difference(v, 25 - np.random.randint(0,10))
+            #traffic_manager.set_percentage_keep_right_rule(v, 0)
+        
         # Swapping to asynchronous server
         print('INFO: Starting asynchronous mode..')
         settings.synchronous_mode = synchronous_mode # Enables synchronous mode
@@ -110,47 +126,64 @@ def main():
         
         #----------- Recording -----------#
         
-        for cam in range(number_of_cameras):
-            camera_name = 'cam' + str(cam)
-            camera = Recorder(world, camera_name, blueprint_library, fps, resolution)
-            camera_list.append(camera)
+        # for cam in range(number_of_cameras):
+            # camera_name = 'cam' + str(cam)
+            # camera = Recorder(world, camera_name, blueprint_library, fps, resolution)
+            # camera_list.append(camera)
             
-        if parallel_recording:
-            for camera in camera_list:
-                target_vehicle = random.choice(vehicle_list)
-                camera.attach(target_vehicle)
+        # if parallel_recording:
+            # for camera in camera_list:
+                # target_vehicle = random.choice(vehicle_list)
+                # camera.attach(target_vehicle)
                 
-            while ticks <= recording_duration * fps:
-                world.tick()
-                ticks += 1
-                #time.sleep(1/fps)
+            # while ticks <= recording_duration * fps:
+                # world.tick()
+                # ticks += 1
+                # #time.sleep(1/fps)
             
-            ticks = 0
+            # ticks = 0
                 
-            for camera in camera_list:
-                camera.stop()
+            # for camera in camera_list:
+                # camera.stop()
                 
-        # Sequential Recording        
-        else:
-            for camera in camera_list:
-                target_vehicle = random.choice(vehicle_list)
-                camera.attach(target_vehicle)
+        # # Sequential Recording        
+        # else:
+            # for camera in camera_list:
+                # target_vehicle = random.choice(vehicle_list)
+                # camera.attach(target_vehicle)
                 
-                while ticks <= recording_duration * fps:
-                    world.tick()
-                    ticks += 1
-                    #time.sleep(1/fps)
+                # while ticks <= recording_duration * fps:
+                    # world.tick()
+                    # ticks += 1
+                    # #time.sleep(1/fps)
                     
-                ticks = 0
+                # ticks = 0
                 
-                camera.stop()
+                # camera.stop()
 
-        # Wait for rendering to finish
-        while( any( [camera.is_recording() for camera in camera_list] ) ):
-            world.tick()
-            time.sleep(1/fps)
+        # # Wait for rendering to finish
+        # while( any( [camera.is_recording() for camera in camera_list] ) ):
+            # world.tick()
+            # time.sleep(1/fps)
             
         #----------- End -----------#
+        
+        while True:
+            world.tick()
+            ticks += 1
+            time.sleep(1/fps)
+            
+            if ticks % (4*fps) == 0:
+                print('\nBad')
+                for v in bad_vehicle_list:
+                    speed = v.get_speed_limit()
+                    if speed > 60:
+                        print(speed)
+                print('\nMdl')
+                for v in mdl_vehicle_list:
+                    speed = v.get_speed_limit()
+                    if speed > 60:
+                        print(speed)
         
 
     finally:
